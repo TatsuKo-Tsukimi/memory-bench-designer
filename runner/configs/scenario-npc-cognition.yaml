@@ -1,0 +1,32 @@
+name: npc-cognition
+seed: 42
+pool_size: 200
+sessions: 10
+steps_per_session: 40
+top_k: 10
+
+archetypes:
+  core: 0.45
+  evolving: 0.10
+  episode: 0.30
+  noise: 0.15
+
+themes:
+  - name: identity
+    vocab: [name, role, origin, background, history, personality, trait, childhood, birthplace, lineage]
+  - name: skills
+    vocab: [expertise, craft, knowledge, ability, training, proficiency, mastery, technique, specialty, discipline]
+  - name: relationships
+    vocab: [friend, ally, rival, family, bond, trust, loyalty, kinship, companion, mentor]
+  - name: values
+    vocab: [belief, moral, principle, ethics, virtue, honor, conviction, ideal, creed, reverence]
+  - name: goals
+    vocab: [objective, aspiration, dream, mission, purpose, desire, ambition, quest, vow, pledge]
+
+context_evolution:
+  type: stable
+  drift_rate: 0.1
+
+arrivals:
+  episode: streaming
+  noise: streaming

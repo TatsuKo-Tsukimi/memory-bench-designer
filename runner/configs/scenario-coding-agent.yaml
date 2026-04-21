@@ -1,0 +1,32 @@
+name: coding-agent
+seed: 42
+pool_size: 200
+sessions: 10
+steps_per_session: 40
+top_k: 10
+
+archetypes:
+  core: 0.10
+  evolving: 0.45
+  episode: 0.35
+  noise: 0.10
+
+themes:
+  - name: api
+    vocab: [endpoint, route, handler, request, response, middleware, controller, serializer, payload, header]
+  - name: database
+    vocab: [schema, migration, query, index, table, column, constraint, foreign, rollback, transaction]
+  - name: auth
+    vocab: [login, token, session, permission, role, credential, oauth, jwt, refresh, scope]
+  - name: frontend
+    vocab: [component, render, state, props, hook, effect, layout, styling, event, dispatch]
+  - name: infra
+    vocab: [deploy, docker, container, pipeline, config, secret, kubernetes, helm, nginx, gateway]
+
+context_evolution:
+  type: mode-shifts
+  drift_rate: 0.15
+
+arrivals:
+  episode: streaming
+  noise: streaming

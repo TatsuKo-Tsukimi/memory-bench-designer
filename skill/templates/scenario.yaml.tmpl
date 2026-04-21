@@ -1,0 +1,42 @@
+# Scenario template — fill in the {{placeholders}} then save as scenario-<name>.yaml
+#
+# pool_size: total number of items generated in the pool
+# sessions × steps_per_session: the number of retrieval queries made
+# archetypes: fractions must sum to 1.0
+#   - core:     stable, high-importance, broad affinity to all themes
+#   - evolving: gets superseded by a v2 later — link drives Update Coherence
+#   - episode:  narrow-affinity to one theme, streaming arrival
+#   - noise:    zero affinity — should be filtered out by good strategies
+# context_evolution.type: random | narrow-band-drift | stable | mode-shifts
+#   - random: uniform theme per query
+#   - narrow-band-drift: slow drift to adjacent themes (good for game-AI)
+#   - stable: one primary theme, ~15% off-theme queries (good for NPC/companion)
+#   - mode-shifts: long stretches per theme, occasional hard switches (good for coding)
+# themes: list of token lists; one list per theme; 8–15 tokens each is typical
+# seed: random seed for reproducibility
+# top_k: how many items each adapter retrieves per query
+
+pool_size: 200
+sessions: 10
+steps_per_session: 40
+
+archetypes:
+  core: {{core_fraction}}      # e.g. 0.15 for game-AI, 0.45 for NPC, 0.10 for coding
+  evolving: {{evolving_fraction}}   # e.g. 0.10 game-AI, 0.10 NPC, 0.45 coding
+  episode: {{episode_fraction}}    # e.g. 0.40 game-AI, 0.30 NPC, 0.35 coding
+  noise: {{noise_fraction}}      # e.g. 0.35 game-AI, 0.15 NPC, 0.10 coding
+
+context_evolution:
+  type: {{evolution_type}}        # narrow-band-drift | stable | mode-shifts | random
+  drift_rate: {{drift_rate}}       # 0.1–0.3 typical
+  # `themes` below also controls evolution space
+
+themes:
+  - [{{theme_1_tokens}}]  # e.g. stealth, sneak, shadow, silent, hidden, crouch, patrol
+  - [{{theme_2_tokens}}]
+  - [{{theme_3_tokens}}]
+  - [{{theme_4_tokens}}]
+  - [{{theme_5_tokens}}]
+
+seed: 42
+top_k: 10

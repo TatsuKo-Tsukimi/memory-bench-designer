@@ -1,0 +1,35 @@
+# Weights template — optional, lets Judgment compute a user-aligned overall score
+# Fill in {{placeholders}} with fractions summing to 1.0
+#
+# Use the families the user said matter most (from Stage 1 Turn 3).
+# If the user didn't prioritize, leave all families at 0.25 (uniform).
+#
+# The runner does not use this file — it's read by the skill during Judgment to
+# compute an aligned overall score, and by the user as an audit trail.
+
+families:
+  exploration: {{exploration_weight}}   # e.g. 0.35 if user prioritized coverage/novelty
+  ranking: {{ranking_weight}}        # e.g. 0.25 if ranking is secondary
+  adaptation: {{adaptation_weight}}     # e.g. 0.10 if cross-session learning doesn't matter
+  maintenance: {{maintenance_weight}}    # e.g. 0.30 if forgetting / supersedes is important
+
+# Example — game-AI user who prioritized exploration + maintenance:
+# families:
+#   exploration: 0.35
+#   ranking: 0.15
+#   adaptation: 0.10
+#   maintenance: 0.40
+
+# Example — NPC user who prioritized adaptation + exploration:
+# families:
+#   exploration: 0.30
+#   ranking: 0.15
+#   adaptation: 0.45
+#   maintenance: 0.10
+
+# Example — coding-agent user who prioritized maintenance + ranking:
+# families:
+#   exploration: 0.05
+#   ranking: 0.30
+#   adaptation: 0.10
+#   maintenance: 0.55
