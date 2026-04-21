@@ -24,7 +24,7 @@ memory-bench run --scenario configs/scenario-game-ai.yaml --out results/
 | Family | Dimensions |
 |---|---|
 | Exploration | Novelty Guarantee, Coverage |
-| Ranking | Recency Decay, Frequency Gain |
+| Ranking | Relevance @ K, Frequency Gain |
 | Adaptation | Personalization, Cross-Session Learning |
 | Maintenance | Update Coherence, Forgetting Quality |
 

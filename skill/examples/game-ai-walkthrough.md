@@ -99,7 +99,7 @@ Skill reads `results/game-ai/results.md` and writes:
 >
 > **Tradeoffs observed:**
 >
-> - For Ranking (your third priority), BM25 wins at 0.70 vs Embedding at 0.70 — exactly tied. Narrow-band drift keeps gameplay vocabulary tight, so BM25's token-matching catches the same signal as Embedding's semantics. Prefer BM25 for production: same score, no ML dependency, no embedding storage per memory.
+> - For Ranking (your third priority), BM25 edges out Embedding at 0.704 vs 0.702 — effectively tied. Narrow-band drift keeps gameplay vocabulary tight, so BM25's token-matching catches the same signal as Embedding's semantics. Prefer BM25 for production: same score, no ML dependency, no embedding storage per memory.
 > - Recency as a floor is at 0.33 for Ranking — your production strategy should beat that by 0.30+. All adapters except Recency clear this bar; even ACT-R at 0.45 is a safer choice than raw recency.
 >
 > **Recommended starting strategy: Composite.**

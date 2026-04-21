@@ -6,7 +6,7 @@ A full conversation transcript for a long-running NPC with stable persona. Demon
 
 The user is building a companion-NPC for an open-world game. The NPC has a defined personality (scholarly, cautious, loyal), accumulates memories across dozens of sessions with the player, and should feel coherent across them. The NPC talks to the player in dialogue turns, not stream-of-events.
 
-**Research-lineage context**: this class of problem motivates embodied-agent cognitive architectures (e.g. FEP-based runtimes like 聪_Ray's 燎原学社). Those systems treat identity as the core invariant across episodic memory — which is exactly the capability profile we expect to surface below.
+**Research-lineage context**: this class of problem motivates embodied-agent cognitive architectures (e.g. FEP-based embodied NPC runtimes). Those systems treat identity as the core invariant across episodic memory — which is exactly the capability profile we expect to surface below.
 
 ## Stage 1 — Understanding
 
@@ -112,4 +112,4 @@ Family winners:
 - **Honest about weak dimensions.** Cross-Session Learning is 0.14 for the winner — the Judgment called this out and recommended a production-level compensation (session summaries) rather than pretending the adapter alone is sufficient.
 - **Relative reference matters.** The Judgment said "this is Embedding's strongest Adaptation across our reference scenarios" — without that context, 0.49 sounds like a mediocre number. With it, the user knows this is the best scenario Embedding plays.
 - **Persona stability maps to stable evolution.** The user described a persistent character; the skill picked `type: stable` with drift_rate 0.1 — and that single choice let ACT-R shine in Exploration because its novelty signal is sharper against a stable theme.
-- **Research-lineage context appears once.** The 燎原学社 / FEP framing is mentioned at the top as motivation, never ported as code. The scenario config is domain-generic; the motivation is just why this class of problem is worth benchmarking carefully.
+- **Research-lineage context appears once.** The FEP / embodied-cognition framing is mentioned at the top as motivation, never ported as code. The scenario config is domain-generic; the motivation is just why this class of problem is worth benchmarking carefully.

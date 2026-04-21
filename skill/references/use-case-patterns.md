@@ -40,7 +40,7 @@ context_evolution:
 
 **Why these numbers**: an NPC or companion agent's memory is dominated by stable identity facts (high core). Conversations return to the same themes over and over (stable evolution). Some interactions matter as episodes. Noise is low because players/users filter their input before talking to a persistent agent.
 
-**Research-lineage context**: this pattern is motivated by embodied-NPC cognitive architectures (e.g. FEP-based runtimes like 聪_Ray's 燎原学社). Those systems need memory that carries identity across sessions — which is exactly what Adaptation and Cross-Session Learning measure.
+**Research-lineage context**: this pattern is motivated by embodied-NPC cognitive architectures (e.g. FEP-based embodied NPC runtimes). Those systems need memory that carries identity across sessions — which is exactly what Adaptation and Cross-Session Learning measure.
 
 **Expected winner profile**: ACT-R (Exploration, highest magnitude of any scenario), Embedding (Ranking + Adaptation, semantic queries about stable themes), Composite (Maintenance).
 

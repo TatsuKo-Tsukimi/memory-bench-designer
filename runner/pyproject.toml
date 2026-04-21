@@ -17,7 +17,10 @@ dependencies = [
 
 [project.optional-dependencies]
 embedding = [
-    "sentence-transformers>=2.7",
+    "sentence-transformers>=2.7,<3",
+    "huggingface-hub<1.0",
+    "transformers<5.0",
+    "tokenizers<0.22",
     "numpy>=1.26",
 ]
 dev = [

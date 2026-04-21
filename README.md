@@ -35,8 +35,7 @@ Two things to notice. First, the **Ranking winner flips** between BM25 and Embed
 
 ```bash
 cd runner
-pip install -e .
-pip install "sentence-transformers>=2.7,<3" "huggingface-hub<1.0" "transformers<5.0" "tokenizers<0.22"
+pip install -e ".[embedding]"
 
 memory-bench run \
   --scenario configs/scenario-game-ai.yaml \
