@@ -136,7 +136,11 @@ def _narrow_affinity(n_themes: int, primary: int, rng: random.Random) -> Dict[in
 
 
 def _sample_content(vocab: List[str], rng: random.Random, min_n: int = 6, max_n: int = 14) -> str:
-    n = rng.randint(min_n, min(max_n, len(vocab)))
+    if not vocab:
+        vocab = ["placeholder"]
+    low = min(min_n, len(vocab))
+    high = max(low, min(max_n, len(vocab)))
+    n = rng.randint(low, high)
     words = rng.sample(vocab, n) if n <= len(vocab) else rng.choices(vocab, k=n)
     return " ".join(words)
 
@@ -158,9 +162,12 @@ def _mixed_content(
     n_other = n - n_primary
     tokens = rng.choices(theme_vocabs[primary], k=n_primary)
     others = [t for t in range(len(theme_vocabs)) if t != primary]
-    for _ in range(n_other):
-        t = rng.choice(others)
-        tokens.append(rng.choice(theme_vocabs[t]))
+    if others:
+        for _ in range(n_other):
+            t = rng.choice(others)
+            tokens.append(rng.choice(theme_vocabs[t]))
+    else:
+        tokens.extend(rng.choices(theme_vocabs[primary], k=n_other))
     rng.shuffle(tokens)
     return " ".join(tokens)
 
