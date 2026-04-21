@@ -12,7 +12,7 @@
 #   - narrow-band-drift: slow drift to adjacent themes (good for game-AI)
 #   - stable: one primary theme, ~15% off-theme queries (good for NPC/companion)
 #   - mode-shifts: long stretches per theme, occasional hard switches (good for coding)
-# themes: list of token lists; one list per theme; 8–15 tokens each is typical
+# themes: list of {name, vocab} dicts; one per theme; 8–15 vocab tokens each is typical
 # seed: random seed for reproducibility
 # top_k: how many items each adapter retrieves per query
 
@@ -32,11 +32,16 @@ context_evolution:
   # `themes` below also controls evolution space
 
 themes:
-  - [{{theme_1_tokens}}]  # e.g. stealth, sneak, shadow, silent, hidden, crouch, patrol
-  - [{{theme_2_tokens}}]
-  - [{{theme_3_tokens}}]
-  - [{{theme_4_tokens}}]
-  - [{{theme_5_tokens}}]
+  - name: {{theme_1_name}}        # e.g. stealth
+    vocab: [{{theme_1_tokens}}]   # e.g. stealth, sneak, shadow, silent, hidden, crouch, patrol
+  - name: {{theme_2_name}}
+    vocab: [{{theme_2_tokens}}]
+  - name: {{theme_3_name}}
+    vocab: [{{theme_3_tokens}}]
+  - name: {{theme_4_name}}
+    vocab: [{{theme_4_tokens}}]
+  - name: {{theme_5_name}}
+    vocab: [{{theme_5_tokens}}]
 
 seed: 42
 top_k: 10

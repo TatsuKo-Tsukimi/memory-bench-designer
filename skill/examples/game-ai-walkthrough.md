@@ -71,11 +71,16 @@ context_evolution:
   type: narrow-band-drift
   drift_rate: 0.25
 themes:
-  - [stealth, sneak, shadow, silent, hidden, crouch, patrol, detection, evade, cover]
-  - [combat, attack, weapon, damage, enemy, strike, fight, defense, parry, dodge]
-  - [exploration, map, route, terrain, area, discover, navigate, location, landmark, waypoint]
-  - [social, npc, dialogue, faction, reputation, ally, trade, persuade, bribe, intimidate]
-  - [crafting, item, recipe, material, inventory, upgrade, workbench, resource, tool, component]
+  - name: stealth
+    vocab: [stealth, sneak, shadow, silent, hidden, crouch, patrol, detection, evade, cover]
+  - name: combat
+    vocab: [combat, attack, weapon, damage, enemy, strike, fight, defense, parry, dodge]
+  - name: exploration
+    vocab: [exploration, map, route, terrain, area, discover, navigate, location, landmark, waypoint]
+  - name: social
+    vocab: [social, npc, dialogue, faction, reputation, ally, trade, persuade, bribe, intimidate]
+  - name: crafting
+    vocab: [crafting, item, recipe, material, inventory, upgrade, workbench, resource, tool, component]
 seed: 42
 top_k: 10
 ```
