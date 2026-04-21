@@ -21,6 +21,7 @@ embedding = [
     "huggingface-hub<1.0",
     "transformers<5.0",
     "tokenizers<0.22",
+    "torch>=2.0,<2.8",
     "numpy>=1.26",
 ]
 dev = [
