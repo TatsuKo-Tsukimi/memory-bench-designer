@@ -41,11 +41,13 @@ If the user is vague, offer defaults: 10 sessions × 40 steps. These are runner 
 1. **User-local patterns** at `~/.claude/patterns/*/pattern.md` — setups the user saved from prior sessions with this skill
 2. **Canonical patterns** in references/use-case-patterns.md — the 4 built-in patterns
 
-If a user-local pattern matches the described use case (similar archetype signature + same domain), surface it first: *"Your earlier `<slug>` setup fits this. Here's what you ran last time — want to start from there?"* Load its scenario.yaml as the starting point; let the user tweak, don't force reuse.
+If a user-local pattern matches the described use case (similar archetype signature + same domain — judged by reading the pattern's `Signature` field), surface it first: *"Your earlier `<slug>` setup fits this. Here's what you ran last time — want to start from there?"* Load its scenario.yaml as the starting point; let the user tweak, don't force reuse.
 
 If only canonical patterns match, show up to 3 ranked by fit (AdaTest's 3–7 cap, we lean to 3).
 
 If nothing matches either source, go raw DSL (see end of use-case-patterns.md).
+
+**Record the pattern source.** At the end of Turn 4, remember which source the scenario came from — one of `canonical`, `user-local`, or `scratch`. Stage 4 uses this to decide whether to offer pattern persistence. If the user started from a canonical or user-local pattern and then tweaked it, the source is still `canonical` / `user-local` — not `scratch`. Only a scenario written from raw DSL counts as `scratch`.
 
 By the end of Stage 1 you should know:
 - Archetype mix: fractions for `core` / `evolving` / `episode` / `noise`
@@ -89,13 +91,19 @@ Read results.md. Do not just paste it back to the user. Write a case-specific in
 
 **3. Recommended starting strategy.** One sentence: *"Start with <adapter> because <why>. If you see <symptom> in production, try <alternative>."* Be specific.
 
-### Pattern persistence (only when the scenario was custom)
+### Pattern persistence (only when the scenario was written from scratch)
 
-If the scenario **did not come from a canonical pattern** — i.e. you wrote it from scratch because no canonical matched — offer to save it as a personal pattern:
+**Trigger condition**: only run this section if the Turn 4 pattern source was `scratch` — no canonical and no user-local pattern was used as the starting point. If the scenario started from a canonical or user-local pattern (even if the user tweaked it afterward), skip this section entirely. Re-saving a user-local pattern would overwrite the prior snapshot and break the audit trail; re-saving a canonical-derived scenario would duplicate an already-captured pattern.
 
-> *"This scenario doesn't match any canonical pattern. Want to save it to `~/.claude/patterns/<slug>/` so next time you describe a similar use case I surface this setup first?"*
+If trigger condition is met, offer to save:
 
-If yes, write three files to `~/.claude/patterns/<slug>/` (slug = the scenario's `name` field):
+> *"This scenario doesn't match any canonical or saved pattern. Want to save it to `~/.claude/patterns/<slug>/` so next time you describe a similar use case I surface this setup first?"*
+
+If yes, use the scenario's `name` field as the slug.
+
+**Before writing, check if `~/.claude/patterns/<slug>/` already exists.** If it does — meaning a prior session saved a different pattern under the same slug — do **not** overwrite. Ask the user: *"A pattern named `<slug>` already exists from a prior session. Pick a new slug, add a suffix (e.g. `<slug>-v2`), or skip saving?"*
+
+Once a non-colliding slug is confirmed, write three files to `~/.claude/patterns/<slug>/`:
 
 - `scenario.yaml` — copy of the scenario config used for this run
 - `results.md` — copy of the results the runner produced
