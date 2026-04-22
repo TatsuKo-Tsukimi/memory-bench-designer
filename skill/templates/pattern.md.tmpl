@@ -1,0 +1,33 @@
+# {{pattern_name}}
+
+**Saved**: {{date}}
+**Signature**: {{one-line signature — e.g. "long-running adversarial agent, mode-shifts across domains, confession-override supersede mechanic"}}
+
+## Use case description
+
+{{2–4 sentences the user said this scenario is about}}
+
+## Key non-default choices (and why)
+
+{{bullet list of scenario.yaml values that diverge from defaults, each with one-sentence rationale from the Ideation phase — so future-you can judge whether the next case really matches}}
+
+## Winner profile (n=1 — take with a grain of salt)
+
+| family | winner | score |
+|---|---|---|
+| exploration | {{adapter}} | {{score}} |
+| ranking | {{adapter}} | {{score}} |
+| adaptation | {{adapter}} | {{score}} |
+| maintenance | {{adapter}} | {{score}} |
+
+## Weighted overall (if weights.yaml was specified)
+
+{{top adapter + weighted score, e.g. "Embedding 0.538" — or "no weights specified"}}
+
+## Notes
+
+{{any caveats — novel mechanics the benchmark only partially covers, unusual runtime observations, adapter-level limitations observed, etc.}}
+
+## How to reuse
+
+When this skill is loaded in a future session, it will read this file during Stage 1 Turn 4. If your new use case matches the Signature above, the skill will surface this pattern and load `scenario.yaml` as the starting point. You can tweak before running.

@@ -36,7 +36,16 @@ If the user is vague, offer defaults: 10 sessions × 40 steps. These are runner 
 
 **Turn 3 — taxonomy check.** Show the 4-family × 8-dimension matrix from references/taxonomy.md. Ask which 2–3 dimensions matter most for this use case. Do not force the user to rank all 8 — cognitive load is too high. You are looking for which *families* to weight.
 
-**Turn 4 (optional) — archetype mix.** If the use case is ambiguous, show 3 candidate archetype mixes (see references/use-case-patterns.md), let the user pick or modify. Never show more than 3 candidates at once (AdaTest's 3–7 cap, we lean to 3).
+**Turn 4 (optional) — pattern match.** Before showing candidates, check two pattern sources in order:
+
+1. **User-local patterns** at `~/.claude/patterns/*/pattern.md` — setups the user saved from prior sessions with this skill
+2. **Canonical patterns** in references/use-case-patterns.md — the 4 built-in patterns
+
+If a user-local pattern matches the described use case (similar archetype signature + same domain), surface it first: *"Your earlier `<slug>` setup fits this. Here's what you ran last time — want to start from there?"* Load its scenario.yaml as the starting point; let the user tweak, don't force reuse.
+
+If only canonical patterns match, show up to 3 ranked by fit (AdaTest's 3–7 cap, we lean to 3).
+
+If nothing matches either source, go raw DSL (see end of use-case-patterns.md).
 
 By the end of Stage 1 you should know:
 - Archetype mix: fractions for `core` / `evolving` / `episode` / `noise`
@@ -80,7 +89,23 @@ Read results.md. Do not just paste it back to the user. Write a case-specific in
 
 **3. Recommended starting strategy.** One sentence: *"Start with <adapter> because <why>. If you see <symptom> in production, try <alternative>."* Be specific.
 
-After these three sections, ask: *"Want to refine the scenario and re-run?"* Common refinements:
+### Pattern persistence (only when the scenario was custom)
+
+If the scenario **did not come from a canonical pattern** — i.e. you wrote it from scratch because no canonical matched — offer to save it as a personal pattern:
+
+> *"This scenario doesn't match any canonical pattern. Want to save it to `~/.claude/patterns/<slug>/` so next time you describe a similar use case I surface this setup first?"*
+
+If yes, write three files to `~/.claude/patterns/<slug>/` (slug = the scenario's `name` field):
+
+- `scenario.yaml` — copy of the scenario config used for this run
+- `results.md` — copy of the results the runner produced
+- `pattern.md` — human-readable summary using templates/pattern.md.tmpl
+
+Do **not** promote to the canonical `use-case-patterns.md`. Canonical patterns require cross-user / multi-run validation; user-local patterns are n=1 by design — useful as personal refine-starting-points, not as recommendations broadcast to others.
+
+### Refine loop
+
+After pattern persistence (whether the user saved or not), ask: *"Want to refine the scenario and re-run?"* Common refinements:
 - Bump up an archetype fraction that felt underrepresented
 - Switch context evolution type
 - Add or remove themes
@@ -105,6 +130,8 @@ After these three sections, ask: *"Want to refine the scenario and re-run?"* Com
 - examples/coding-agent-walkthrough.md — code/PR/design memory with frequent supersedes
 - templates/scenario.yaml.tmpl — the scenario DSL skeleton
 - templates/weights.yaml.tmpl — family weights skeleton
+- templates/pattern.md.tmpl — personal-pattern snapshot skeleton (used in Stage 4 persistence)
+- `~/.claude/patterns/<slug>/` — user-local saved patterns (checked in Turn 4 before canonical fallback)
 
 ## What this skill does not do
 
