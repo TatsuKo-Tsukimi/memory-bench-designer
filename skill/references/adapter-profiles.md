@@ -1,8 +1,10 @@
 # Adapter profiles — what each strategy wins and loses
 
-Empirical profiles from running all five adapters across three worked scenarios (game-ai, npc-cognition, coding-agent). Scores are 0–1, higher is better.
+Empirical profiles from running all five adapters across three worked scenarios (game-ai, npc-cognition, coding-agent). Scores are 0–1, higher is better. The tables below were captured under protocol **seed=42, pool_size=200, sessions=10, steps_per_session=40, top_k=10** — equivalent to `configs/protocols/default.yaml` / `ProtocolConfig()`. When you share results from your own runs, disclose the `protocol_hash` and `scenario_hash` so others can tell if the numbers are on the same basis.
 
 Use these profiles in Stage 4 (Judgment) to contextualize the user's results. A Personalization score of 0.7 means something different in a game-AI scenario vs an NPC scenario — these tables tell you what.
+
+**v0.2 note.** The raw scores below are what v0.1 reported. v0.2 runs additionally emit a normalized column `(raw − random_baseline) / (1 − random_baseline)` — see the main report's "normalized leaderboard" table. The normalized column is the right number to compare across scenarios with matching `protocol_hash`; raw numbers can mislead across scenarios because a high raw score (e.g. ForgettingQuality in a 10%-noise scenario) can be the baseline a random adapter achieves. When re-running these profiles, report normalized family-avgs alongside the raw tables below.
 
 ## Recency (null baseline)
 

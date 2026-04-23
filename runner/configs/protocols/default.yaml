@@ -1,0 +1,14 @@
+# Evaluation protocol — frozen across runs for cross-scenario comparability.
+# Two result files are directly comparable only when both were produced under
+# the same protocol (same protocol_hash in the output). Change any field here
+# and results stop being comparable to prior runs.
+#
+# Pair this with any file in configs/scenarios/ via:
+#   memory-bench run --protocol configs/protocols/default.yaml \
+#                    --scenario configs/scenarios/<name>.yaml \
+#                    --out results/<name>
+seed: 42
+pool_size: 200
+sessions: 10
+steps_per_session: 40
+top_k: 10

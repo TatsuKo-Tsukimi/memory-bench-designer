@@ -1,0 +1,27 @@
+name: game-ai
+
+archetypes:
+  core: 0.15
+  evolving: 0.10
+  episode: 0.40
+  noise: 0.35
+
+themes:
+  - name: stealth
+    vocab: [sneak, hide, shadow, silent, ambush, crouch, quiet, dodge, vanish, cloak]
+  - name: combat
+    vocab: [fight, attack, damage, weapon, strike, defend, block, counter, blade, shield]
+  - name: exploration
+    vocab: [search, explore, map, discover, scout, reveal, roam, trek, probe, chart]
+  - name: social
+    vocab: [talk, persuade, bluff, charm, convince, barter, flatter, deceive, appease, rally]
+  - name: crafting
+    vocab: [build, craft, forge, gather, smelt, carve, mend, brew, stitch, assemble]
+
+context_evolution:
+  type: narrow-band-drift
+  drift_rate: 0.25
+
+arrivals:
+  episode: streaming
+  noise: streaming

@@ -1,11 +1,24 @@
-"""Top-level scenario generator — YAML → (ItemPool, ContextStream)."""
+"""Top-level scenario generator — YAML → (ItemPool, ContextStream).
+
+v0.2 splits the former single ``ScenarioConfig`` into two:
+
+* :class:`ProtocolConfig` — evaluation physics (seed, pool_size, sessions,
+  steps_per_session, top_k). Frozen for cross-run comparability. Equivalent
+  to autoresearch's ``prepare.py`` constants.
+* :class:`ScenarioConfig` — content (themes, archetypes, context_evolution,
+  arrivals). User-customizable.
+
+Pre-v0.2 single-file YAMLs still load via :func:`load_legacy_yaml` with a
+``DeprecationWarning``.
+"""
 
 from __future__ import annotations
 
 import random
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import yaml
 
@@ -13,74 +26,160 @@ from memory_bench.scenario.context import ContextStream, build_context_stream
 from memory_bench.scenario.item_pool import Item, ItemPool
 
 
+_PROTOCOL_FIELDS = ("seed", "pool_size", "sessions", "steps_per_session", "top_k")
+_SCENARIO_FIELDS = ("archetypes", "themes", "context_evolution", "arrivals")
+
+
+def detect_yaml_kind(path: str | Path) -> str:
+    """Classify a YAML file as 'protocol', 'scenario', or 'legacy'.
+
+    'legacy' = pre-v0.2 single-file with both protocol and content fields.
+    'protocol' = only protocol fields.
+    'scenario' = only content fields.
+    """
+    raw = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    has_p = any(k in raw for k in _PROTOCOL_FIELDS)
+    has_s = any(k in raw for k in _SCENARIO_FIELDS)
+    if has_p and has_s:
+        return "legacy"
+    if has_p:
+        return "protocol"
+    return "scenario"
+
+
 @dataclass
-class ScenarioConfig:
-    name: str
-    pool_size: int
-    sessions: int
-    steps_per_session: int
-    top_k: int
-    archetypes: Dict[str, float]
-    themes: List[Dict[str, Any]]
-    context_evolution: Dict[str, Any]
-    arrivals: Dict[str, Any]
+class ProtocolConfig:
     seed: int = 42
+    pool_size: int = 200
+    sessions: int = 10
+    steps_per_session: int = 40
+    top_k: int = 10
 
     @staticmethod
-    def from_yaml(path: str | Path) -> "ScenarioConfig":
+    def from_yaml(path: str | Path) -> "ProtocolConfig":
         raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
-        return ScenarioConfig(
-            name=raw.get("name", Path(path).stem),
+        content_keys = [k for k in _SCENARIO_FIELDS if k in raw]
+        if content_keys:
+            raise ValueError(
+                f"{path} looks like a scenario or legacy YAML (has content keys "
+                f"{content_keys}). Pass it to --scenario or load with "
+                f"load_legacy_yaml() instead."
+            )
+        return ProtocolConfig(
+            seed=int(raw.get("seed", 42)),
             pool_size=int(raw["pool_size"]),
             sessions=int(raw["sessions"]),
             steps_per_session=int(raw["steps_per_session"]),
             top_k=int(raw.get("top_k", 10)),
+        )
+
+
+@dataclass
+class ScenarioConfig:
+    name: str
+    archetypes: Dict[str, float]
+    themes: List[Dict[str, Any]]
+    context_evolution: Dict[str, Any]
+    arrivals: Dict[str, Any] = field(default_factory=dict)
+
+    @staticmethod
+    def from_yaml(path: str | Path) -> "ScenarioConfig":
+        raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+        protocol_keys = [k for k in _PROTOCOL_FIELDS if k in raw]
+        if protocol_keys:
+            raise ValueError(
+                f"{path} looks like a protocol or legacy YAML (has protocol keys "
+                f"{protocol_keys}). Pass it to --protocol or load with "
+                f"load_legacy_yaml() instead."
+            )
+        return ScenarioConfig(
+            name=raw.get("name", Path(path).stem),
             archetypes=dict(raw["archetypes"]),
             themes=list(raw["themes"]),
             context_evolution=dict(raw["context_evolution"]),
             arrivals=dict(raw.get("arrivals", {})),
-            seed=int(raw.get("seed", 42)),
         )
 
 
-def generate_scenario(cfg: ScenarioConfig) -> Tuple[ItemPool, ContextStream, ScenarioConfig]:
-    rng = random.Random(cfg.seed)
-    theme_vocabs = [list(t["vocab"]) for t in cfg.themes]
+def load_legacy_yaml(path: str | Path) -> Tuple[ProtocolConfig, ScenarioConfig]:
+    """Load a pre-v0.2 single-file scenario YAML.
+
+    Emits a :class:`DeprecationWarning`. The file must contain both protocol
+    and content fields (the pre-v0.2 layout). Returns the split pair.
+    """
+    path = Path(path)
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    has_protocol = any(k in raw for k in _PROTOCOL_FIELDS)
+    has_content = any(k in raw for k in _SCENARIO_FIELDS)
+    if not (has_protocol and has_content):
+        raise ValueError(
+            f"{path} is not a legacy single-file YAML (expected both protocol "
+            f"and scenario fields). Use ProtocolConfig.from_yaml or "
+            f"ScenarioConfig.from_yaml directly."
+        )
+    warnings.warn(
+        f"Loading legacy single-file scenario YAML from {path}. Split into "
+        f"protocols/ + scenarios/ before v0.3 — see README for the new layout.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    protocol = ProtocolConfig(
+        seed=int(raw.get("seed", 42)),
+        pool_size=int(raw["pool_size"]),
+        sessions=int(raw["sessions"]),
+        steps_per_session=int(raw["steps_per_session"]),
+        top_k=int(raw.get("top_k", 10)),
+    )
+    scenario = ScenarioConfig(
+        name=raw.get("name", path.stem),
+        archetypes=dict(raw["archetypes"]),
+        themes=list(raw["themes"]),
+        context_evolution=dict(raw["context_evolution"]),
+        arrivals=dict(raw.get("arrivals", {})),
+    )
+    return protocol, scenario
+
+
+def generate_scenario(
+    protocol: ProtocolConfig, scenario: ScenarioConfig
+) -> Tuple[ItemPool, ContextStream]:
+    rng = random.Random(protocol.seed)
+    theme_vocabs = [list(t["vocab"]) for t in scenario.themes]
     n_themes = len(theme_vocabs)
     noise_vocab = _noise_vocab(theme_vocabs, rng)
 
-    counts = _archetype_counts(cfg.pool_size, cfg.archetypes)
+    counts = _archetype_counts(protocol.pool_size, scenario.archetypes)
 
     pool = ItemPool()
     _gen_core(pool, counts["core"], theme_vocabs, rng)
-    _gen_evolving(pool, counts["evolving"], theme_vocabs, cfg.sessions, rng)
+    _gen_evolving(pool, counts["evolving"], theme_vocabs, protocol.sessions, rng)
     _gen_episode(
         pool,
         counts["episode"],
         theme_vocabs,
-        cfg.sessions,
-        cfg.steps_per_session,
+        protocol.sessions,
+        protocol.steps_per_session,
         rng,
     )
     _gen_noise(
         pool,
         counts["noise"],
         noise_vocab,
-        cfg.sessions,
-        cfg.steps_per_session,
+        protocol.sessions,
+        protocol.steps_per_session,
         rng,
     )
 
     stream = build_context_stream(
-        evolution_type=cfg.context_evolution["type"],
+        evolution_type=scenario.context_evolution["type"],
         themes=theme_vocabs,
-        sessions=cfg.sessions,
-        steps_per_session=cfg.steps_per_session,
-        drift_rate=float(cfg.context_evolution.get("drift_rate", 0.1)),
-        top_k=cfg.top_k,
+        sessions=protocol.sessions,
+        steps_per_session=protocol.steps_per_session,
+        drift_rate=float(scenario.context_evolution.get("drift_rate", 0.1)),
+        top_k=protocol.top_k,
         rng=rng,
     )
-    return pool, stream, cfg
+    return pool, stream
 
 
 def _archetype_counts(pool_size: int, ratios: Dict[str, float]) -> Dict[str, int]:

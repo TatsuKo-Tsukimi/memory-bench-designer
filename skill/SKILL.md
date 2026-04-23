@@ -59,11 +59,13 @@ If anything is ambiguous, default to the closest pattern in references/use-case-
 
 ## Stage 2 — Ideation
 
-Write two files into the user's current working directory:
-- `scenario-<name>.yaml` — the scenario config
+Write the scenario config into the user's current working directory:
+- `scenario-<name>.yaml` — **content only** (archetypes, themes, context_evolution, arrivals)
 - `weights-<name>.yaml` — family weights for Judgment (optional)
 
 Use templates/scenario.yaml.tmpl and templates/weights.yaml.tmpl as starting points. Substitute the values from Stage 1.
+
+v0.2 note: **do not put protocol fields** (`seed`, `pool_size`, `sessions`, `steps_per_session`, `top_k`) in the scenario file. These are evaluation-physics constants and live in a separate protocol file. The CLI auto-uses `ProtocolConfig()` defaults (seed=42, pool_size=200, sessions=10, steps=40, top_k=10) when no `--protocol` is given. Only write an explicit `protocol-<name>.yaml` if the user needs non-default evaluation physics — e.g. a cheaper CI run, or a stress-test pool. Mixing protocol fields into the scenario file breaks cross-scenario comparability and is rejected by the loader with an error.
 
 Show the user the generated scenario.yaml and ask: *"Look right, or tweak anything before we run?"* Keep this confirmation to one round — don't re-litigate Stage 1.
 
@@ -75,19 +77,25 @@ Invoke the runner via Bash:
 memory-bench run --scenario scenario-<name>.yaml --out results/<name>/ --embedding --composite
 ```
 
+The runner auto-loads the default protocol when `--protocol` is omitted. Pass `--protocol protocol-<name>.yaml` only if you wrote a custom protocol in Stage 2.
+
 The `--embedding` flag enables the sentence-transformers adapter (first run downloads ~90 MB model). The `--composite` flag enables the weighted multi-signal adapter. Both are recommended — without them you only get three cheap baselines and the leaderboard is thin.
 
-The runner writes `results/<name>/results.md` and `results/<name>/results.json`. Read the markdown file.
+The runner writes `results/<name>/results.md` and `results/<name>/results.json`. Read the markdown file. Its header shows `protocol_hash` and `scenario_hash` — these identify the exact evaluation harness and content, and are the anchor for comparing results across runs.
 
 Expected runtime: 1–5 minutes. If it's slower, sentence-transformers is doing a cold model download — this is normal on first run.
 
 ## Stage 4 — Judgment
 
-Read results.md. Do not just paste it back to the user. Write a case-specific interpretation with three sections:
+Read results.md. Do not just paste it back to the user. Write a case-specific interpretation with three sections.
 
-**1. Capability profile.** For each family the user said matters in Stage 1, state the winner, its score, and whether that score is high or low relative to the other scenarios in references/adapter-profiles.md. A winner with score 0.4 means "best available but still weak" — say that out loud.
+**Reading the numbers (v0.2).** The report shows two leaderboards: **raw** and **normalized-vs-random-baseline**. Use normalized for interpretation and cross-scenario comparison; use raw only to describe within-run behavior. Normalized is clamped to [-1, 1]: 0 means "matches a random adapter on that dimension", positive means the adapter extracts signal a random policy cannot, negative means strictly worse than random. Every metric is normalized the same way — there is no opt-out.
 
-**2. Tradeoffs observed.** Point to 1–2 dimensions where a non-winner adapter came close, and what that means. Example: *"Composite edges out Embedding in Update Coherence by 5%, but loses Personalization by 10%. For your use case, you care more about X, so Embedding is the safer default."*
+A normalized score ≥ +0.3 is usually a meaningful win. Near-zero or negative normalized scores on a metric the user cares about should be flagged, even if raw looks high — e.g. `forgetting_quality` raw 0.70 with normalized -1.0 means the adapter performs **worse than random** at noise filtering, because a 10%-noise scenario gifts any blind adapter a raw score of 0.90. On `coverage` specifically, the random baseline is near-saturation (~0.97) because a uniform adapter sweeps nearly the whole pool — adapters that concentrate (e.g. most BM25/Embedding configurations) clamp to −1 on coverage. That is real signal: the adapter is narrower than random, and any strategy that advertises "exploration" should beat this floor.
+
+**1. Capability profile.** For each family the user said matters in Stage 1, state the winner, its normalized family-avg, and whether that's high or low relative to the other scenarios in references/adapter-profiles.md. A winner with normalized family-avg 0.1 means "best available but essentially matches random" — say that out loud.
+
+**2. Tradeoffs observed.** Point to 1–2 dimensions where a non-winner adapter came close (on normalized scores), and what that means. Example: *"Composite edges out Embedding in normalized Update Coherence by +0.05, but loses normalized Personalization by 0.10. For your use case you care more about X, so Embedding is the safer default."*
 
 **3. Recommended starting strategy.** One sentence: *"Start with <adapter> because <why>. If you see <symptom> in production, try <alternative>."* Be specific.
 

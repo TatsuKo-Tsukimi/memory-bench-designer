@@ -15,7 +15,12 @@ from memory_bench.metrics.maintenance import ForgettingQuality, UpdateCoherence
 from memory_bench.metrics.ranking import FrequencyGain, RelevanceAtK
 from memory_bench.report import write_reports
 from memory_bench.runner import run_benchmark
-from memory_bench.scenario.generator import ScenarioConfig
+from memory_bench.scenario.generator import (
+    ProtocolConfig,
+    ScenarioConfig,
+    detect_yaml_kind,
+    load_legacy_yaml,
+)
 
 
 def _build_adapters(include_embedding: bool, include_composite: bool):
@@ -51,10 +56,22 @@ def cli() -> None:
 
 @cli.command()
 @click.option(
+    "--protocol",
+    "protocol_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Path to protocol YAML (evaluation physics: seed, pool_size, sessions, "
+    "steps_per_session, top_k). If omitted, --scenario is auto-classified: "
+    "content-only files run under ProtocolConfig() defaults, legacy single-file "
+    "formats are loaded with a deprecation warning.",
+)
+@click.option(
     "--scenario",
     "scenario_path",
     required=True,
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Path to scenario YAML (content: archetypes, themes, context_evolution, "
+    "arrivals).",
 )
 @click.option(
     "--out",
@@ -72,9 +89,43 @@ def cli() -> None:
     default=False,
     help="Include the composite multi-signal adapter.",
 )
-def run(scenario_path: Path, out_dir: Path, embedding: bool, composite: bool) -> None:
+def run(
+    protocol_path: Path | None,
+    scenario_path: Path,
+    out_dir: Path,
+    embedding: bool,
+    composite: bool,
+) -> None:
     """Run a scenario end-to-end."""
-    cfg = ScenarioConfig.from_yaml(scenario_path)
+    if protocol_path is None:
+        kind = detect_yaml_kind(scenario_path)
+        if kind == "legacy":
+            click.echo(
+                "[warn] --protocol not provided; loading --scenario as legacy "
+                "single-file YAML (deprecated, will be removed in v0.3).",
+                err=True,
+            )
+            protocol, scenario = load_legacy_yaml(scenario_path)
+        elif kind == "scenario":
+            click.echo(
+                "[info] --protocol not provided; using default ProtocolConfig "
+                "(seed=42, pool_size=200, sessions=10, steps_per_session=40, top_k=10).",
+                err=True,
+            )
+            protocol = ProtocolConfig()
+            scenario = ScenarioConfig.from_yaml(scenario_path)
+        else:  # "protocol"
+            raise click.UsageError(
+                f"{scenario_path} is a protocol YAML, not a scenario. "
+                "Pass it via --protocol and provide a scenario YAML via --scenario."
+            )
+    else:
+        try:
+            protocol = ProtocolConfig.from_yaml(protocol_path)
+            scenario = ScenarioConfig.from_yaml(scenario_path)
+        except ValueError as e:
+            raise click.UsageError(str(e)) from e
+
     adapters = _build_adapters(embedding, composite)
     metric_factories = [
         NoveltyGuarantee,
@@ -86,10 +137,15 @@ def run(scenario_path: Path, out_dir: Path, embedding: bool, composite: bool) ->
         UpdateCoherence,
         ForgettingQuality,
     ]
-    click.echo(f"Running {cfg.name}: {len(adapters)} adapters × {len(metric_factories)} metrics")
-    results = run_benchmark(cfg, adapters, metric_factories)
+    click.echo(
+        f"Running {scenario.name}: {len(adapters)} adapters × {len(metric_factories)} metrics"
+    )
+    results = run_benchmark(protocol, scenario, adapters, metric_factories)
     write_reports(results, out_dir)
     click.echo(f"Wrote {out_dir / 'results.md'}")
+    click.echo(
+        f"protocol_hash={results.protocol_hash}  scenario_hash={results.scenario_hash}"
+    )
 
 
 def main() -> None:

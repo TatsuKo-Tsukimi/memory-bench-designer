@@ -1,7 +1,9 @@
-# Scenario template — fill in the {{placeholders}} then save as scenario-<name>.yaml
+# Scenario template (v0.2 content-only) — fill in {{placeholders}}, save as scenario-<name>.yaml
 #
-# pool_size: total number of items generated in the pool
-# sessions × steps_per_session: the number of retrieval queries made
+# Protocol fields (seed, pool_size, sessions, steps_per_session, top_k) do NOT
+# belong in this file. They live in a separate protocol file or use built-in
+# defaults. Mixing them here is rejected by the loader with an error.
+#
 # archetypes: fractions must sum to 1.0
 #   - core:     stable, high-importance, broad affinity to all themes
 #   - evolving: gets superseded by a v2 later — link drives Update Coherence
@@ -13,12 +15,8 @@
 #   - stable: one primary theme, ~15% off-theme queries (good for NPC/companion)
 #   - mode-shifts: long stretches per theme, occasional hard switches (good for coding)
 # themes: list of {name, vocab} dicts; one per theme; 8–15 vocab tokens each is typical
-# seed: random seed for reproducibility
-# top_k: how many items each adapter retrieves per query
 
-pool_size: 200
-sessions: 10
-steps_per_session: 40
+name: {{scenario_name}}
 
 archetypes:
   core: {{core_fraction}}      # e.g. 0.15 for game-AI, 0.45 for NPC, 0.10 for coding
@@ -29,7 +27,6 @@ archetypes:
 context_evolution:
   type: {{evolution_type}}        # narrow-band-drift | stable | mode-shifts | random
   drift_rate: {{drift_rate}}       # 0.1–0.3 typical
-  # `themes` below also controls evolution space
 
 themes:
   - name: {{theme_1_name}}        # e.g. stealth
@@ -43,5 +40,6 @@ themes:
   - name: {{theme_5_name}}
     vocab: [{{theme_5_tokens}}]
 
-seed: 42
-top_k: 10
+arrivals:
+  episode: streaming
+  noise: streaming
