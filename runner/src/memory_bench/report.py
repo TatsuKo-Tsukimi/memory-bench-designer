@@ -38,7 +38,7 @@ def render_markdown(results: BenchmarkResults) -> str:
     lines.append("")
     pm = results.protocol_meta
     lines.append(f"- pool_size: **{pm['pool_size']}**")
-    lines.append(f"- sessions × steps: **{pm['sessions']} × {pm['steps_per_session']}**")
+    lines.append(f"- sessions x steps: **{pm['sessions']} x {pm['steps_per_session']}**")
     lines.append(f"- top_k: **{pm['top_k']}**")
     lines.append(f"- seed: {pm['seed']}")
     lines.append("")
@@ -54,19 +54,19 @@ def render_markdown(results: BenchmarkResults) -> str:
     adapters = list(results.per_adapter.keys())
     dims = _unique_dimensions(results)
 
-    lines.append("## Per-dimension leaderboard — raw")
+    lines.append("## Per-dimension leaderboard - raw")
     lines.append("")
     lines.append(_render_table(adapters, dims, results, use_normalized=False))
     lines.append("")
 
-    lines.append("## Per-dimension leaderboard — normalized (vs random baseline)")
+    lines.append("## Per-dimension leaderboard - normalized (vs random baseline)")
     lines.append("")
     lines.append(
-        "Normalized = (raw − baseline) / (1 − baseline), clamped to [−1, 1]. "
+        "Normalized = (raw - baseline) / (1 - baseline), clamped to [-1, 1]. "
         "0 = matches random, 1 = perfect, negative = worse than random. "
         "When the random baseline is near-saturation (common on coverage, where "
         "a uniform adapter touches ~97% of the pool), adapters that concentrate "
-        "clamp to −1 — an honest signal that they explore narrower than random."
+        "clamp to -1: an honest signal that they explore narrower than random."
     )
     lines.append("")
     lines.append(_render_table(adapters, dims, results, use_normalized=True))
@@ -78,10 +78,10 @@ def render_markdown(results: BenchmarkResults) -> str:
     lines.append("|---|---|")
     for d in dims:
         b = results.baseline_scores.get(d)
-        lines.append(f"| {d} | {b:.3f} |" if b is not None else f"| {d} | — |")
+        lines.append(f"| {d} | {b:.3f} |" if b is not None else f"| {d} | - |")
     lines.append("")
 
-    lines.append("## Per-family averages — normalized")
+    lines.append("## Per-family averages - normalized")
     lines.append("")
     families = _unique_families(results)
     header2 = "| adapter | " + " | ".join(families) + " |"
@@ -106,7 +106,7 @@ def render_markdown(results: BenchmarkResults) -> str:
     lines.append("")
     lines.append(
         "- **Raw** is comparable only within this run. 0.90 on ForgettingQuality "
-        "can just mean \"10% noise scenario\" — the baseline scores table shows "
+        "can just mean \"10% noise scenario\"; the baseline scores table shows "
         "what a random adapter got."
     )
     lines.append(
@@ -121,7 +121,7 @@ def render_markdown(results: BenchmarkResults) -> str:
     )
     lines.append(
         "- **Don't aggregate across families.** They measure orthogonal "
-        "capabilities — tradeoffs are the point."
+        "capabilities; tradeoffs are the point."
     )
     return "\n".join(lines) + "\n"
 
@@ -149,7 +149,7 @@ def _render_table(
 
 def _format_cell(r: Optional[MetricResult], use_normalized: bool) -> str:
     if r is None:
-        return "—"
+        return "-"
     if not use_normalized:
         return f"{r.score:.3f}"
     if r.normalized_score is None:

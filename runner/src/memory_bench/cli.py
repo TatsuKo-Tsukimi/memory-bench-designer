@@ -138,7 +138,7 @@ def run(
         ForgettingQuality,
     ]
     click.echo(
-        f"Running {scenario.name}: {len(adapters)} adapters × {len(metric_factories)} metrics"
+        f"Running {scenario.name}: {len(adapters)} adapters x {len(metric_factories)} metrics"
     )
     results = run_benchmark(protocol, scenario, adapters, metric_factories)
     write_reports(results, out_dir)

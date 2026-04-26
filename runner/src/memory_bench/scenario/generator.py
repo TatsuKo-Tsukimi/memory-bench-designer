@@ -159,6 +159,7 @@ def generate_scenario(
         theme_vocabs,
         protocol.sessions,
         protocol.steps_per_session,
+        scenario.arrivals,
         rng,
     )
     _gen_noise(
@@ -167,6 +168,7 @@ def generate_scenario(
         noise_vocab,
         protocol.sessions,
         protocol.steps_per_session,
+        scenario.arrivals,
         rng,
     )
 
@@ -188,6 +190,15 @@ def _archetype_counts(pool_size: int, ratios: Dict[str, float]) -> Dict[str, int
     diff = pool_size - sum(counts.values())
     if diff != 0:
         counts["episode"] += diff
+    if counts["evolving"] % 2:
+        for donor in ("episode", "noise", "core"):
+            if counts[donor] > 0:
+                counts["evolving"] += 1
+                counts[donor] -= 1
+                break
+        else:
+            counts["evolving"] -= 1
+            counts["episode"] += 1
     return counts
 
 
@@ -271,6 +282,33 @@ def _mixed_content(
     return " ".join(tokens)
 
 
+def _arrival_slot(
+    archetype: str,
+    arrivals: Dict[str, Any],
+    sessions: int,
+    steps_per_session: int,
+    rng: random.Random,
+) -> Tuple[int, int]:
+    mode = arrivals.get(archetype, "streaming")
+    if isinstance(mode, dict):
+        session = int(mode.get("session", 0))
+        step = int(mode.get("step", 0))
+        return (
+            max(0, min(sessions - 1, session)),
+            max(0, min(steps_per_session - 1, step)),
+        )
+    if mode == "streaming":
+        return rng.randrange(sessions), rng.randrange(steps_per_session)
+    if mode == "initial":
+        return 0, 0
+    if mode == "session-start":
+        return rng.randrange(sessions), 0
+    raise ValueError(
+        f"unknown arrival mode for {archetype}: {mode!r}; "
+        "expected streaming, initial, session-start, or {session, step}"
+    )
+
+
 def _gen_core(pool: ItemPool, n: int, theme_vocabs: List[List[str]], rng: random.Random) -> None:
     n_themes = len(theme_vocabs)
     for i in range(n):
@@ -329,13 +367,13 @@ def _gen_episode(
     theme_vocabs: List[List[str]],
     sessions: int,
     steps_per_session: int,
+    arrivals: Dict[str, Any],
     rng: random.Random,
 ) -> None:
     n_themes = len(theme_vocabs)
     for i in range(n):
         primary = rng.randrange(n_themes)
-        session = rng.randrange(sessions)
-        step = rng.randrange(steps_per_session)
+        session, step = _arrival_slot("episode", arrivals, sessions, steps_per_session, rng)
         item = Item(
             id=f"episode_{i:04d}",
             archetype="episode",
@@ -355,11 +393,11 @@ def _gen_noise(
     noise_vocab: List[str],
     sessions: int,
     steps_per_session: int,
+    arrivals: Dict[str, Any],
     rng: random.Random,
 ) -> None:
     for i in range(n):
-        session = rng.randrange(sessions)
-        step = rng.randrange(steps_per_session)
+        session, step = _arrival_slot("noise", arrivals, sessions, steps_per_session, rng)
         item = Item(
             id=f"noise_{i:04d}",
             archetype="noise",
