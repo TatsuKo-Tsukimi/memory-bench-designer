@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -37,6 +37,11 @@ class EmbeddingAdapter(Adapter):
         self._vectors: Dict[str, np.ndarray] = {}
         self._pending_ids: List[str] = []
         self._pending_content: List[str] = []
+
+    def config(self) -> Dict[str, Any]:
+        cfg = super().config()
+        cfg.update({"model_name": self.model_name})
+        return cfg
 
     def _ensure_model(self):
         if self._model is None:

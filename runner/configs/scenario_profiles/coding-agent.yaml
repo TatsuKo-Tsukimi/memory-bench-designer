@@ -1,0 +1,7 @@
+scenario_profile:
+  name: coding-agent
+  priorities:
+    update_coherence: high
+    forgetting_quality: high
+    ranking: medium
+    exploration: low

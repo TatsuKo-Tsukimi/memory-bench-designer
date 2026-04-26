@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import numpy as np
 
@@ -34,6 +34,19 @@ class CompositeAdapter(Adapter):
         self.w_imp = w_imp
         self.decay_tau = decay_tau
         self._emb = embedding or EmbeddingAdapter(name=f"{name}._emb")
+
+    def config(self) -> Dict[str, Any]:
+        cfg = super().config()
+        cfg.update(
+            {
+                "w_sim": self.w_sim,
+                "w_decay": self.w_decay,
+                "w_imp": self.w_imp,
+                "decay_tau": self.decay_tau,
+                "embedding": self._emb.config(),
+            }
+        )
+        return cfg
 
     def _on_observe(self, item: Item, global_step: int) -> None:
         self._emb.observe(item, global_step)

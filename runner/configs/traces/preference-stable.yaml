@@ -1,0 +1,20 @@
+trace_version: 1
+name: preference-stable
+domain: companion
+events:
+  - id: e1
+    session: s1
+    role: user
+    content: "I prefer concise status updates with direct next steps."
+    tags: [preference]
+  - id: e2
+    session: s2
+    role: user
+    content: "For project planning, keep summaries short and action oriented."
+    tags: [preference]
+queries:
+  - id: q1
+    after: e2
+    text: "How should status updates be written for this user?"
+    expected_include: [e1, e2]
+    expected_exclude: []

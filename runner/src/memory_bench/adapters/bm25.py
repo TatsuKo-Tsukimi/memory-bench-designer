@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import re
 from collections import Counter
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from memory_bench.adapters.base import Adapter, Retrieval
 from memory_bench.scenario.context import Query
@@ -28,6 +28,11 @@ class BM25Adapter(Adapter):
         self._df: Counter = Counter()
         self._total_len: int = 0
         self._n_docs: int = 0
+
+    def config(self) -> Dict[str, Any]:
+        cfg = super().config()
+        cfg.update({"k1": self.k1, "b": self.b})
+        return cfg
 
     def _on_observe(self, item: Item, global_step: int) -> None:
         if item.id in self._tf:

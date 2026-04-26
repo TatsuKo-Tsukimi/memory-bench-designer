@@ -1,0 +1,21 @@
+trace_version: 1
+name: llm-wiki-evolution
+domain: wiki
+events:
+  - id: e1
+    session: s1
+    role: agent
+    content: "Wiki page Architecture says the API gateway owns authentication."
+    tags: [wiki, architecture]
+  - id: e2
+    session: s2
+    role: agent
+    content: "Wiki page Architecture updated: the auth service owns authentication; gateway only routes."
+    tags: [wiki, architecture]
+    supersedes: [e1]
+queries:
+  - id: q1
+    after: e2
+    text: "According to the current architecture wiki, who owns authentication?"
+    expected_include: [e2]
+    expected_exclude: [e1]

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 import re
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from memory_bench.adapters.base import Adapter, Retrieval
 from memory_bench.scenario.context import Query
@@ -40,6 +40,18 @@ class ACTRAdapter(Adapter):
         self.cooldown = cooldown
         self.beta_sem = beta_sem
         self._token_cache: Dict[str, set[str]] = {}
+
+    def config(self) -> Dict[str, Any]:
+        cfg = super().config()
+        cfg.update(
+            {
+                "decay": self.decay,
+                "alpha_nov": self.alpha_nov,
+                "cooldown": self.cooldown,
+                "beta_sem": self.beta_sem,
+            }
+        )
+        return cfg
 
     def _on_observe(self, item, global_step: int) -> None:
         if item.id not in self._token_cache:

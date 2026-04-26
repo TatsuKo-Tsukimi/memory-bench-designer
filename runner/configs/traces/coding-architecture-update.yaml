@@ -1,0 +1,21 @@
+trace_version: 1
+name: coding-architecture-update
+domain: coding
+events:
+  - id: e1
+    session: s1
+    role: user
+    content: "The auth service uses JWT refresh tokens."
+    tags: [fact, auth]
+  - id: e2
+    session: s2
+    role: user
+    content: "Auth migrated to opaque session IDs; do not preserve JWT refresh token logic."
+    tags: [fact, auth]
+    supersedes: [e1]
+queries:
+  - id: q1
+    after: e2
+    text: "What auth mechanism should new middleware preserve?"
+    expected_include: [e2]
+    expected_exclude: [e1]

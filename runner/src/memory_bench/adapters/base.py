@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from memory_bench.scenario.context import Query
 from memory_bench.scenario.item_pool import Item
@@ -66,3 +66,9 @@ class Adapter(ABC):
     def last_retr(self, item_id: str) -> int:
         times = self._retr_times.get(item_id)
         return times[-1] if times else -(10**9)
+
+    def config(self) -> Dict[str, Any]:
+        return {
+            "name": self.name,
+            "class": f"{self.__class__.__module__}.{self.__class__.__name__}",
+        }

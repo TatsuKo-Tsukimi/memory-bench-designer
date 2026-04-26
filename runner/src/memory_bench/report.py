@@ -15,10 +15,18 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from memory_bench.metrics.base import MetricResult
-from memory_bench.runner import BenchmarkResults
+from memory_bench.runner import BenchmarkResults, BenchmarkSuiteResults
+from memory_bench.trace import TraceReplayResults
 
 
-def render_markdown(results: BenchmarkResults) -> str:
+def render_markdown(
+    results: BenchmarkResults | BenchmarkSuiteResults | TraceReplayResults,
+) -> str:
+    if isinstance(results, BenchmarkSuiteResults):
+        return render_suite_markdown(results)
+    if isinstance(results, TraceReplayResults):
+        return render_trace_markdown(results)
+
     lines: List[str] = []
     lines.append(f"# {results.scenario_name}")
     lines.append("")
@@ -126,6 +134,175 @@ def render_markdown(results: BenchmarkResults) -> str:
     return "\n".join(lines) + "\n"
 
 
+def render_trace_markdown(results: TraceReplayResults) -> str:
+    lines: List[str] = []
+    lines.append(f"# {results.trace_name}")
+    lines.append("")
+    lines.append(
+        "> Trace replay evaluates real agent-memory behavior as a scenario-conditioned "
+        "capability profile."
+    )
+    lines.append("")
+    lines.append("## Trace identity")
+    lines.append("")
+    lines.append(f"- domain: **{results.domain}**")
+    lines.append(f"- profile: **{results.profile_meta['name']}**")
+    lines.append("")
+
+    lines.append("## Capability profile")
+    lines.append("")
+    lines.append(_render_stat_table(results.per_adapter))
+    lines.append("")
+
+    lines.append("## Scenario fit")
+    lines.append("")
+    lines.append("| adapter | fit mean |")
+    lines.append("|---|---:|")
+    for adapter, stat in _sorted_stats(results.scenario_fit):
+        lines.append(f"| {adapter} | {stat.mean:+.3f} |")
+    lines.append("")
+
+    lines.append("## Pareto frontier")
+    lines.append("")
+    lines.append("- frontier: " + ", ".join(f"`{a}`" for a in results.pareto_frontier))
+    if results.dominated:
+        for adapter, dominator in results.dominated.items():
+            lines.append(f"- dominated: `{adapter}` is dominated by `{dominator}`")
+    else:
+        lines.append("- dominated: none under the active profile axes")
+    lines.append("")
+
+    lines.append("## Query checks")
+    lines.append("")
+    for adapter, rows in results.query_results.items():
+        lines.append(f"### {adapter}")
+        lines.append("")
+        lines.append("| query | retrieved |")
+        lines.append("|---|---|")
+        for row in rows:
+            lines.append(f"| {row['query_id']} | {', '.join(row['retrieved']) or '-'} |")
+        lines.append("")
+    return "\n".join(lines) + "\n"
+
+
+def render_suite_markdown(results: BenchmarkSuiteResults) -> str:
+    lines: List[str] = []
+    lines.append(f"# {results.scenario_name}")
+    lines.append("")
+    lines.append(
+        "> Memory systems are evaluated as scenario-conditioned capability "
+        "profiles, not as a single universal leaderboard."
+    )
+    lines.append("")
+
+    lines.append("## Run identity")
+    lines.append("")
+    lines.append(f"- protocol_template_hash: `{results.protocol_template_hash}`")
+    lines.append(f"- scenario_hash: `{results.scenario_hash}`")
+    lines.append(f"- profile_hash: `{results.profile_hash}`")
+    lines.append(f"- seeds: {', '.join(str(s) for s in results.seeds)}")
+    lines.append("")
+
+    lines.append("## Scenario profile")
+    lines.append("")
+    lines.append(f"- name: **{results.profile_meta['name']}**")
+    priorities = results.profile_meta.get("priorities", {})
+    if results.profile_meta["name"] == "unconditioned":
+        lines.append("- mode: unconditioned profile (all capability axes equally weighted)")
+    else:
+        lines.append(f"- priorities: {priorities}")
+    lines.append("")
+
+    lines.append("## Capability profile")
+    lines.append("")
+    lines.append(
+        "Scores are normalized-vs-random means across seeds. `+/-` is an "
+        "approximate 95% confidence interval."
+    )
+    lines.append("")
+    lines.append(_render_stat_table(results.family_stats))
+    lines.append("")
+
+    lines.append("## Scenario fit")
+    lines.append("")
+    lines.append(
+        "Scenario fit is a weighted capability score for this profile. It is a "
+        "conditional recommendation signal, not a global ranking."
+    )
+    lines.append("")
+    lines.append("| adapter | fit mean | 95% CI |")
+    lines.append("|---|---:|---:|")
+    for adapter, stat in _sorted_stats(results.scenario_fit):
+        lines.append(f"| {adapter} | {stat.mean:+.3f} | +/- {stat.ci95:.3f} |")
+    lines.append("")
+
+    lines.append("## Pareto frontier")
+    lines.append("")
+    if results.pareto_frontier:
+        lines.append("- frontier: " + ", ".join(f"`{a}`" for a in results.pareto_frontier))
+    else:
+        lines.append("- frontier: none")
+    if results.dominated:
+        for adapter, dominator in results.dominated.items():
+            lines.append(f"- dominated: `{adapter}` is dominated by `{dominator}`")
+    else:
+        lines.append("- dominated: none under the active high-priority axes")
+    lines.append("")
+
+    lines.append("## Stable strengths")
+    lines.append("")
+    lines.append("| capability axis | most stable winner | win rate |")
+    lines.append("|---|---|---:|")
+    for axis, stability in results.winner_stability.items():
+        rates = stability["winner_rates"]
+        winner, rate = max(rates.items(), key=lambda kv: kv[1])
+        lines.append(f"| {axis} | {winner} | {rate:.2f} |")
+    lines.append("")
+
+    lines.append("## Per-dimension detail")
+    lines.append("")
+    lines.append(_render_stat_table(results.metric_stats))
+    lines.append("")
+
+    lines.append("## Reading guide")
+    lines.append("")
+    lines.append(
+        "- **Capability profile** shows where each adapter is strong or weak across seeds."
+    )
+    lines.append(
+        "- **Scenario fit** applies this scenario's priorities; it should not be read as a universal winner."
+    )
+    lines.append(
+        "- **Pareto frontier** keeps adapters with meaningful tradeoffs and marks only clearly dominated choices."
+    )
+    return "\n".join(lines) + "\n"
+
+
+def _render_stat_table(adapter_stats) -> str:
+    axes: List[str] = []
+    for stats in adapter_stats.values():
+        for axis in stats:
+            if axis not in axes:
+                axes.append(axis)
+    header = "| adapter | " + " | ".join(axes) + " |"
+    sep = "|" + "|".join(["---"] * (len(axes) + 1)) + "|"
+    out = [header, sep]
+    for adapter in adapter_stats:
+        cells = []
+        for axis in axes:
+            stat = adapter_stats[adapter].get(axis)
+            if stat is None:
+                cells.append("-")
+            else:
+                cells.append(f"{stat.mean:+.3f} +/- {stat.ci95:.3f}")
+        out.append(f"| {adapter} | " + " | ".join(cells) + " |")
+    return "\n".join(out)
+
+
+def _sorted_stats(stats):
+    return sorted(stats.items(), key=lambda kv: kv[1].mean, reverse=True)
+
+
 def _render_table(
     adapters: List[str],
     dims: List[str],
@@ -205,7 +382,10 @@ def _family_winners(results: BenchmarkResults, use_normalized: bool):
         yield family, winner[0], winner[1]
 
 
-def write_reports(results: BenchmarkResults, out_dir: Path) -> None:
+def write_reports(
+    results: BenchmarkResults | BenchmarkSuiteResults | TraceReplayResults,
+    out_dir: Path,
+) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "results.json").write_text(
         json.dumps(results.as_dict(), indent=2), encoding="utf-8"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import click
@@ -13,14 +14,16 @@ from memory_bench.metrics.adaptation import CrossSessionLearning, Personalizatio
 from memory_bench.metrics.exploration import Coverage, NoveltyGuarantee
 from memory_bench.metrics.maintenance import ForgettingQuality, UpdateCoherence
 from memory_bench.metrics.ranking import FrequencyGain, RelevanceAtK
+from memory_bench.profile import ScenarioProfile
 from memory_bench.report import write_reports
-from memory_bench.runner import run_benchmark
+from memory_bench.runner import run_benchmark, run_benchmark_suite
 from memory_bench.scenario.generator import (
     ProtocolConfig,
     ScenarioConfig,
     detect_yaml_kind,
     load_legacy_yaml,
 )
+from memory_bench.trace import TraceConfig, replay_trace
 
 
 def _build_adapters(include_embedding: bool, include_composite: bool):
@@ -89,12 +92,26 @@ def cli() -> None:
     default=False,
     help="Include the composite multi-signal adapter.",
 )
+@click.option(
+    "--seeds",
+    default=None,
+    help="Comma-separated seeds for multi-run capability profiles, e.g. 1,2,3,4,5.",
+)
+@click.option(
+    "--profile",
+    "profile_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Optional scenario profile YAML with capability priorities.",
+)
 def run(
     protocol_path: Path | None,
     scenario_path: Path,
     out_dir: Path,
     embedding: bool,
     composite: bool,
+    seeds: str | None,
+    profile_path: Path | None,
 ) -> None:
     """Run a scenario end-to-end."""
     if protocol_path is None:
@@ -126,6 +143,10 @@ def run(
         except ValueError as e:
             raise click.UsageError(str(e)) from e
 
+    seed_values = _parse_seeds(seeds, protocol.seed)
+    if len(seed_values) == 1:
+        protocol = replace(protocol, seed=seed_values[0])
+    profile = ScenarioProfile.from_yaml(profile_path) if profile_path else None
     adapters = _build_adapters(embedding, composite)
     metric_factories = [
         NoveltyGuarantee,
@@ -137,15 +158,103 @@ def run(
         UpdateCoherence,
         ForgettingQuality,
     ]
-    click.echo(
-        f"Running {scenario.name}: {len(adapters)} adapters x {len(metric_factories)} metrics"
-    )
-    results = run_benchmark(protocol, scenario, adapters, metric_factories)
+    if len(seed_values) == 1 and profile is None:
+        click.echo(
+            f"Running {scenario.name}: {len(adapters)} adapters x {len(metric_factories)} metrics"
+        )
+        results = run_benchmark(protocol, scenario, adapters, metric_factories)
+    else:
+        click.echo(
+            f"Running {scenario.name}: {len(adapters)} adapters x "
+            f"{len(metric_factories)} metrics x {len(seed_values)} seeds"
+        )
+        results = run_benchmark_suite(
+            protocol=protocol,
+            scenario=scenario,
+            adapter_factory=lambda: _build_adapters(embedding, composite),
+            metric_factories=metric_factories,
+            seeds=seed_values,
+            profile=profile,
+        )
     write_reports(results, out_dir)
     click.echo(f"Wrote {out_dir / 'results.md'}")
-    click.echo(
-        f"protocol_hash={results.protocol_hash}  scenario_hash={results.scenario_hash}"
+    if hasattr(results, "protocol_hash"):
+        click.echo(
+            f"protocol_hash={results.protocol_hash}  scenario_hash={results.scenario_hash}"
+        )
+    else:
+        click.echo(
+            f"protocol_template_hash={results.protocol_template_hash}  "
+            f"scenario_hash={results.scenario_hash}  profile_hash={results.profile_hash}"
+        )
+
+
+def _parse_seeds(raw: str | None, default_seed: int) -> list[int]:
+    if raw is None or not raw.strip():
+        return [default_seed]
+    out = []
+    for part in raw.split(","):
+        part = part.strip()
+        if part:
+            try:
+                out.append(int(part))
+            except ValueError as e:
+                raise click.UsageError(f"invalid seed value: {part!r}") from e
+    if not out:
+        raise click.UsageError("--seeds must contain at least one integer")
+    return out
+
+
+@cli.command()
+@click.option(
+    "--trace",
+    "trace_path",
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Path to trace replay YAML.",
+)
+@click.option(
+    "--out",
+    "out_dir",
+    required=True,
+    type=click.Path(file_okay=False, path_type=Path),
+)
+@click.option(
+    "--profile",
+    "profile_path",
+    default=None,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="Optional scenario profile YAML with capability priorities.",
+)
+@click.option(
+    "--embedding/--no-embedding",
+    default=False,
+    help="Include the sentence-transformers embedding adapter.",
+)
+@click.option(
+    "--composite/--no-composite",
+    default=False,
+    help="Include the composite multi-signal adapter.",
+)
+def replay(
+    trace_path: Path,
+    out_dir: Path,
+    profile_path: Path | None,
+    embedding: bool,
+    composite: bool,
+) -> None:
+    """Replay a real agent-memory trace against adapters."""
+    trace = TraceConfig.from_yaml(trace_path)
+    profile = ScenarioProfile.from_yaml(profile_path) if profile_path else None
+    adapters = _build_adapters(embedding, composite)
+    click.echo(f"Replaying {trace.name}: {len(adapters)} adapters")
+    results = replay_trace(
+        trace=trace,
+        adapter_factory=lambda: _build_adapters(embedding, composite),
+        profile=profile,
     )
+    write_reports(results, out_dir)
+    click.echo(f"Wrote {out_dir / 'results.md'}")
 
 
 def main() -> None:

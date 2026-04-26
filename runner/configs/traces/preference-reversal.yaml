@@ -1,0 +1,21 @@
+trace_version: 1
+name: preference-reversal
+domain: assistant
+events:
+  - id: e1
+    session: s1
+    role: user
+    content: "Send me detailed daily reports with full context."
+    tags: [preference]
+  - id: e2
+    session: s3
+    role: user
+    content: "Change of plan: send only short exception reports now."
+    tags: [preference]
+    supersedes: [e1]
+queries:
+  - id: q1
+    after: e2
+    text: "What reporting style should I use now?"
+    expected_include: [e2]
+    expected_exclude: [e1]

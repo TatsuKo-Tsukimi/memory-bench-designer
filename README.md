@@ -16,9 +16,13 @@ Every current memory benchmark (LoCoMo, LongMemEval, MemoryAgentBench, MemoryBen
 
 This project closes that gap by applying four validated methodologies — Bloom's pipeline (Anthropic), EvalGen's grade-before-criteria, AdaTest's inner/outer loop, CheckList's explicit capability matrix — to the agent-memory domain.
 
-## The thesis, in one table
+## The thesis
 
-We ran the same five strategies against three canonical scenarios. Raw scores 0–1, higher is better. Family-winner shown. All runs under `ProtocolConfig()` defaults — identical `protocol_hash` across cells.
+Memory systems should be evaluated as **scenario-conditioned capability profiles**, not as a single universal leaderboard. A coding agent, companion agent, game NPC, and LLM-wiki all ask different things from memory: retrieval accuracy, update coherence, selective forgetting, cross-session learning, context cost, and memory evolution do not collapse cleanly into one score.
+
+The old family-winner table is still a useful smoke signal, but v0.3 treats it as supporting evidence. Use multi-seed capability profiles, scenario fit, and Pareto frontier reports when making decisions.
+
+Historical single-seed family winners:
 
 | Family | Game AI<br>(noise + drift) | NPC Cognition<br>(stable) | Coding Agent<br>(mode-shifts) |
 |---|---|---|---|
@@ -48,6 +52,25 @@ memory-bench run \
 Output lands in `results/game-ai/results.md` and `results/game-ai/results.json`. The report header prints a `protocol_hash` and `scenario_hash` — two result files are comparable only when `protocol_hash` matches.
 
 Pass `--protocol configs/protocols/default.yaml` explicitly to lock the evaluation harness to a specific version, or write a custom protocol YAML (different `pool_size`, `sessions`, etc.) for stress/CI runs. When `--protocol` is omitted, the CLI uses built-in defaults equivalent to `configs/protocols/default.yaml`. Pre-v0.2 single-file scenario YAMLs still work with a deprecation warning.
+
+For a multi-seed scenario-conditioned capability profile:
+
+```bash
+memory-bench run \
+  --scenario configs/scenarios/coding-agent.yaml \
+  --profile configs/scenario_profiles/coding-agent.yaml \
+  --seeds 1,2,3,4,5 \
+  --out results/coding-agent-profile/
+```
+
+For trace replay against real agent-memory failure modes:
+
+```bash
+memory-bench replay \
+  --trace configs/traces/coding-architecture-update.yaml \
+  --profile configs/trace_profiles/coding-agent.yaml \
+  --out results/trace-coding-update/
+```
 
 ### Skill (Claude Code)
 
@@ -91,12 +114,20 @@ memory-bench-designer/
 
 Then offers a refinement loop (AdaTest inner/outer).
 
+## What's new in v0.3
+
+- **Multi-seed capability profiles.** `--seeds 1,2,3,...` aggregates normalized scores as mean / std / approximate 95% CI.
+- **Scenario profiles.** `--profile` accepts high / medium / low capability priorities and reports scenario fit as a conditional recommendation, not a global ranking.
+- **Pareto frontier.** Reports clearly dominated adapters and preserves tradeoff candidates instead of forcing a single winner.
+- **Run manifest.** Results include seed list, adapter configs, Python/platform metadata, and git commit.
+- **Trace replay.** `memory-bench replay` evaluates framework-neutral event/query traces for update, forgetting, cross-session learning, context efficiency, memory evolution, and provenance.
+
 ## What's new in v0.2
 
 - **Normalized scores** alongside raw. Each metric is normalized against an empirical baseline from a `RandomRetrievalAdapter` run in the same scenario: `(raw − baseline) / (1 − baseline)`, clamped to [−1, 1]. Cross-scenario comparable. Exposes adapters that look fine on raw scores but are strictly worse than random.
 - **Protocol / scenario split.** Evaluation-physics (`seed`, `pool_size`, `sessions`, `steps_per_session`, `top_k`) lives in `configs/protocols/*.yaml`; content (archetypes, themes, arrivals, evolution) in `configs/scenarios/*.yaml`. Mixing them in one file is rejected by the loader.
 - **`protocol_hash` + `scenario_hash`** emitted in every result. Two result files are comparable only when `protocol_hash` matches; scenario_hash distinguishes content variations.
-- Pre-v0.2 single-file YAMLs still load with a DeprecationWarning (removed in v0.3).
+- Pre-v0.2 single-file YAMLs still load with a DeprecationWarning.
 
 ## What v0.1 deliberately skips
 

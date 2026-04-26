@@ -1,0 +1,8 @@
+scenario_profile:
+  name: coding-agent-trace
+  priorities:
+    retrieval_recall: medium
+    update_coherence: high
+    selective_forgetting: high
+    cross_session_learning: medium
+    context_efficiency: low
